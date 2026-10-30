@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FutFy - Cadastro e Gestão de Jogadores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pitch: {
+                            black: '#060d08',
+                            dark: '#0a140e',
+                            card: '#0f1f14',
+                            cardHover: '#162e1d',
+                            border: '#1d3b26',
+                            borderLight: '#2a5236',
+                            green: '#22c55e',
+                            neon: '#4ade80',
+                            gold: '#eab308',
+                            subtext: '#81a38a'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #060d08;
+            color: white;
+        }
+        .hero-pitch {
+            background: radial-gradient(circle at 50% 0%, #15331e 0%, #0a140e 75%, #060d08 100%);
+            position: relative;
+        }
+        .hero-pitch::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(34, 197, 94, 0.12) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .card-fut {
+            background: linear-gradient(145deg, #102115 0%, #0c1810 100%);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .card-fut-titular {
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            background: linear-gradient(145deg, #15261a 0%, #0e1b12 100%);
+        }
+        .modal-blur {
+            background: rgba(6, 13, 8, 0.88);
+            backdrop-filter: blur(16px);
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-pitch-black text-white min-h-screen selection:bg-pitch-green selection:text-black">
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    const Icons = {
+        Ball: ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 7l-3 2 1 3.5h4l1-3.5z"/>
+                <path d="M9 9L5 8.5"/>
+                <path d="M15 9l4-.5"/>
+                <path d="M10 12.5L7.5 16"/>
+                <path d="M14 12.5l2.5 3.5"/>
+                <path d="M10 12.5h4"/>
+            </svg>
+        ),
+        Jersey: ({ size = 20, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 4l4-2h4l4 2 3 5-3 2v11H6V11L3 9z"/>
+                <path d="M9 2a3 3 0 0 0 6 0"/>
+            </svg>
+        ),
+        Trophy: ({ size = 20, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                <path d="M4 22h16"/>
+                <path d="M10 14.66V17"/>
+                <path d="M14 14.66V17"/>
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+            </svg>
+        ),
+        Whistle: ({ size = 20, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H6a4 4 0 0 0-4 4v2a4 4 0 0 0 4 4h5l9-5V4l-9 0z"/>
+                <circle cx="6" cy="9" r="1.5"/>
+                <path d="M15.5 8.5L18 11"/>
+            </svg>
+        ),
+        Star: ({ size = 16, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+        ),
+        Home: ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        ),
+        Plus: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        ),
+        Search: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        ),
+        Edit: ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 5 4 4M4 20l4-.8L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>
+        ),
+        Trash: ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>
+        ),
+        Settings: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        ),
+        Users: ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        )
+    };
+
+    const DEMO_PLAYERS = [
+        {
+            id: 1,
+            nome: 'Gabriel Barbosa',
+            posicao: 'ATACANTE',
+            clube: 'Flamengo',
+            peso: 78
+        },
+        {
+            id: 2,
+            nome: 'Giorgian De Arrascaeta',
+            posicao: 'MEIA',
+            clube: 'Flamengo',
+            peso: 72
+        }
+    ];
+
+    const EMPTY_FORM = {
+        nome: '',
+        posicao: 'MEIA',
+        clube: '',
+        peso: ''
+    };
+
+    function App() {
+        const [tela, setTela] = useState('principal');
+        const [apiUrl, setApiUrl] = useState('http://localhost:8080/api/jogadores');
+        const [urlEdit, setUrlEdit] = useState(apiUrl);
+        const [showConfig, setShowConfig] = useState(false);
+        const [statusApi, setStatusApi] = useState('carregando');
+        const [useDemoMode, setUseDemoMode] = useState(false);
+        const [erroDetalhe, setErroDetalhe] = useState('');
+
+        const [jogadores, setJogadores] = useState([]);
+        const [busca, setBusca] = useState('');
+        const [filtroPosicao, setFiltroPosicao] = useState('TODOS');
+
+        const [form, setForm] = useState(EMPTY_FORM);
+        const [editando, setEditando] = useState(null);
+        const [deletando, setDeletando] = useState(null);
+        const [toast, setToast] = useState(null);
+        const [carregando, setCarregando] = useState(false);
+
+        const avisar = (mensagem, tipo = 'info') => {
+            setToast({ mensagem, tipo });
+            setTimeout(() => setToast(null), 3800);
+        };
+
+        const request = async (path = '', options = {}) => {
+            const res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, options);
+            if (!res.ok) throw new Error(`A API respondeu com status ${res.status}`);
+            if (res.status === 204) return null;
+            const text = await res.text();
+            return text ? JSON.parse(text) : null;
+        };
+
+        const carregarJogadores = async () => {
+            if (useDemoMode) {
+                setCarregando(false);
+                return;
+            }
+
+            setCarregando(true);
+            setErroDetalhe('');
+            try {
+                const dados = await request();
+                setJogadores(Array.isArray(dados) ? dados : (dados ? [dados] : []));
+                setStatusApi('conectado');
+            } catch (e) {
+                setStatusApi('erro');
+                setErroDetalhe(e.message || 'Não foi possível conectar ao servidor backend REST.');
+                if (jogadores.length === 0) {
+                    setJogadores(DEMO_PLAYERS);
+                }
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        useEffect(() => {
+            carregarJogadores();
+        }, [apiUrl, useDemoMode]);
+
+        const alternarParaDemo = () => {
+            setUseDemoMode(true);
+            setStatusApi('demo');
+            setJogadores(DEMO_PLAYERS);
+            avisar('Modo demonstrativo ativado! Alterações ocorrem localmente.', 'info');
+        };
+
+        const salvar = async (e) => {
+            e.preventDefault();
+            const payload = {
+                ...form,
+                peso: form.peso === '' ? null : Number(form.peso)
+            };
+
+            if (useDemoMode || statusApi === 'erro') {
+                if (editando !== null) {
+                    setJogadores(jogadores.map(j => j.id === editando ? { ...payload, id: editando } : j));
+                    avisar('Jogador atualizado localmente!', 'sucesso');
+                } else {
+                    const novoId = Math.max(0, ...jogadores.map(j => j.id || 0)) + 1;
+                    setJogadores([...jogadores, { ...payload, id: novoId }]);
+                    avisar('Jogador cadastrado localmente!', 'sucesso');
+                }
+                setForm(EMPTY_FORM);
+                setEditando(null);
+                setTela('principal');
+                return;
+            }
+
+            try {
+                if (editando !== null) {
+                    await request('/' + editando, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    avisar('Jogador atualizado via API REST!', 'sucesso');
+                } else {
+                    await request('', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    avisar('Jogador cadastrado na API REST!', 'sucesso');
+                }
+                setForm(EMPTY_FORM);
+                setEditando(null);
+                setTela('principal');
+                await carregarJogadores();
+            } catch (err) {
+                avisar(`Erro ao salvar na API: ${err.message}`, 'erro');
+            }
+        };
+
+        const editar = (j) => {
+            setForm({
+                nome: j.nome || '',
+                posicao: j.posicao || 'MEIA',
+                clube: j.clube || '',
+                peso: j.peso ?? ''
+            });
+            setEditando(j.id);
+            setTela('cadastro');
+        };
+
+        const excluir = async (id) => {
+            if (useDemoMode || statusApi === 'erro') {
+                setJogadores(jogadores.filter(j => j.id !== id));
+                avisar('Jogador removido do elenco!', 'sucesso');
+                setDeletando(null);
+                return;
+            }
+
+            try {
+                await request('/' + id, { method: 'DELETE' });
+                avisar('Jogador excluído via API!', 'sucesso');
+                setDeletando(null);
+                await carregarJogadores();
+            } catch (err) {
+                avisar(`Não foi possível excluir. ${err.message}`, 'erro');
+            }
+        };
+
+        const filtrados = useMemo(() => {
+            return jogadores.filter(j => {
+                const termo = busca.toLowerCase();
+                const texto = [j.nome, j.clube, j.posicao].filter(Boolean).join(' ').toLowerCase();
+                const bateTexto = texto.includes(termo);
+                const batePosicao = filtroPosicao === 'TODOS' || j.posicao === filtroPosicao;
+                return bateTexto && batePosicao;
+            });
+        }, [jogadores, busca, filtroPosicao]);
+
+        const fieldStyle = "w-full bg-pitch-black border border-pitch-border rounded-xl p-3 text-sm text-white focus:outline-none focus:border-pitch-neon focus:ring-1 focus:ring-pitch-neon transition placeholder-neutral-600";
+        const labelStyle = "block text-pitch-subtext font-bold mb-1.5 uppercase tracking-wider text-[10px]";
+
+        return (
+            <div className="flex min-h-screen bg-pitch-black text-white">
+                {toast && (
+                    <div className={`fixed top-5 right-5 z-[80] px-4 py-3 rounded-xl text-xs font-semibold shadow-2xl border flex items-center gap-3 transition duration-300 ${
+                        toast.tipo === 'sucesso'
+                            ? 'bg-pitch-dark text-pitch-neon border-pitch-green/50 shadow-pitch-green/10'
+                            : toast.tipo === 'erro'
+                                ? 'bg-pitch-dark text-rose-400 border-rose-500/40 shadow-rose-500/10'
+                                : 'bg-pitch-dark text-white border-neutral-700'
+                    }`}>
+                        <Icons.Ball size={18} className="animate-spin" />
+                        <span>{toast.mensagem}</span>
+                    </div>
+                )}
+
+                <aside className="w-64 bg-[#040805] p-6 hidden md:flex flex-col justify-between border-r border-pitch-border">
+                    <div className="space-y-8">
+                        <div className="flex items-center gap-3 px-1">
+                            <div className="w-10 h-10 rounded-xl bg-pitch-green/20 border border-pitch-green/40 text-pitch-neon flex items-center justify-center shadow-lg shadow-pitch-green/10">
+                                <Icons.Ball size={24} />
+                            </div>
+                            <div>
+                                <span className="text-2xl font-black tracking-tight text-white">fut<span className="text-pitch-neon">Fy</span></span>
+                                <span className="block text-[9px] font-extrabold uppercase tracking-widest text-pitch-gold">Gestão Tática</span>
+                            </div>
+                        </div>
+
+                        <nav className="space-y-2">
+                            <button
+                                onClick={() => setTela('principal')}
+                                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition ${
+                                    tela === 'principal'
+                                        ? 'bg-pitch-card text-pitch-neon border border-pitch-border shadow-md'
+                                        : 'text-pitch-subtext hover:text-white hover:bg-pitch-card/50'
+                                }`}
+                            >
+                                <Icons.Users size={18} /> Elenco & Jogadores
+                            </button>
+                            <button
+                                onClick={() => { setForm(EMPTY_FORM); setEditando(null); setTela('cadastro'); }}
+                                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition ${
+                                    tela === 'cadastro'
+                                        ? 'bg-pitch-card text-pitch-neon border border-pitch-border shadow-md'
+                                        : 'text-pitch-subtext hover:text-white hover:bg-pitch-card/50'
+                                }`}
+                            >
+                                <Icons.Plus size={18} /> Cadastrar Atleta
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div className="bg-pitch-card p-3.5 rounded-2xl border border-pitch-border space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-pitch-subtext text-[10px] font-black uppercase tracking-wider">Backend API</span>
+                            <span className={`w-2 h-2 rounded-full ${
+                                statusApi === 'conectado' ? 'bg-pitch-neon shadow-[0_0_8px_#4ade80]' : statusApi === 'demo' ? 'bg-pitch-gold' : 'bg-rose-500 animate-pulse'
+                            }`}></span>
+                        </div>
+                        <div className="text-[11px] font-mono text-neutral-300 break-all bg-pitch-black p-2 rounded-lg border border-pitch-border/50">
+                            {useDemoMode ? 'Modo Demo (Local)' : apiUrl}
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1">
+            <span className="text-pitch-subtext text-[10px]">
+              {statusApi === 'conectado' ? 'Conectado' : statusApi === 'demo' ? 'Demonstração' : 'Off-line'}
+            </span>
+                            <button onClick={() => { setUrlEdit(apiUrl); setShowConfig(true); }} className="text-pitch-neon font-bold hover:underline text-[11px] flex items-center gap-1">
+                                <Icons.Settings size={12}/> Config
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main className="flex-1 min-w-0 flex flex-col">
+                    <header className="sticky top-0 z-30 bg-[#060d08]/90 backdrop-blur border-b border-pitch-border px-5 md:px-8 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3 md:hidden">
+                            <div className="w-8 h-8 rounded-lg bg-pitch-green/20 text-pitch-neon flex items-center justify-center">
+                                <Icons.Ball size={20} />
+                            </div>
+                            <b className="text-lg font-black tracking-tight">fut<span className="text-pitch-neon">Fy</span></b>
+                        </div>
+
+                        <div className="hidden md:block text-xs font-bold text-pitch-subtext tracking-wider uppercase">
+                            PAINEL TÁTICO / <span className="text-white">{tela === 'cadastro' ? 'NOVO REGISTRO' : 'VISÃO DE ELENCO'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                onClick={() => carregarJogadores()}
+                                disabled={carregando}
+                                className="px-3.5 py-2 rounded-full border border-pitch-border bg-pitch-card text-xs font-bold hover:border-pitch-green transition flex items-center gap-1.5"
+                            >
+                                <Icons.Whistle size={14} className={carregando ? "animate-spin" : ""} />
+                                {carregando ? 'Atualizando...' : 'Sincronizar'}
+                            </button>
+                            <button
+                                onClick={() => { setForm(EMPTY_FORM); setEditando(null); setTela('cadastro'); }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pitch-neon hover:bg-pitch-green text-black font-black text-xs transition shadow-lg shadow-pitch-green/20"
+                            >
+                                <Icons.Plus size={16} /> Cadastrar Jogador
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="p-5 md:p-8 max-w-7xl mx-auto w-full flex-1">
+                        {tela === 'principal' ? (
+                            <>
+                                <section className="hero-pitch rounded-3xl p-6 md:p-10 mb-8 border border-pitch-borderLight overflow-hidden shadow-2xl relative">
+                                    <div className="relative z-10">
+                                        <div className="inline-flex items-center gap-2 bg-pitch-green/10 border border-pitch-green/30 px-3 py-1 rounded-full text-pitch-neon text-[11px] font-black uppercase tracking-widest mb-4">
+                                            <Icons.Trophy size={14} className="text-pitch-gold" />
+                                            Gestão de Elenco Profissional
+                                        </div>
+                                        <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-3">
+                                            Prontos para <span className="text-transparent bg-clip-text bg-gradient-to-r from-pitch-neon via-emerald-300 to-pitch-gold">entrar em campo.</span>
+                                        </h1>
+                                        <p className="text-pitch-subtext max-w-2xl text-xs md:text-sm leading-relaxed">
+                                            Controle de escalação, posição tática e clube integrados via API REST em tempo real.
+                                        </p>
+                                    </div>
+                                </section>
+
+                                {statusApi === 'erro' && !useDemoMode && (
+                                    <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div>
+                                            <b className="text-rose-300 text-base font-extrabold flex items-center gap-2">
+                                                ⚠️ Conexão REST ausente em <code>{apiUrl}</code>
+                                            </b>
+                                            <p className="text-pitch-subtext text-xs mt-1">
+                                                {erroDetalhe} Você pode tentar alterar o endpoint da API ou usar o modo demonstrativo local.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2 shrink-0">
+                                            <button
+                                                onClick={alternarParaDemo}
+                                                className="px-4 py-2 rounded-xl bg-pitch-gold text-black text-xs font-black hover:bg-amber-400 transition"
+                                            >
+                                                Usar Modo Demo
+                                            </button>
+                                            <button
+                                                onClick={() => { setUrlEdit(apiUrl); setShowConfig(true); }}
+                                                className="px-4 py-2 rounded-xl border border-pitch-border bg-pitch-card text-xs font-bold hover:bg-pitch-cardHover transition"
+                                            >
+                                                Ajustar API
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between mb-6">
+                                    <div>
+                                        <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                                            <Icons.Jersey className="text-pitch-neon" /> Elenco de Atletas
+                                        </h2>
+                                        <p className="text-pitch-subtext text-xs mt-0.5">Filtre por posição, nome ou clube</p>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <div className="flex items-center gap-2 bg-pitch-card border border-pitch-border rounded-xl px-3.5 py-2 w-full sm:w-64 focus-within:border-pitch-neon transition">
+                                            <Icons.Search className="text-pitch-subtext shrink-0"/>
+                                            <input
+                                                value={busca}
+                                                onChange={e => setBusca(e.target.value)}
+                                                placeholder="Buscar nome, clube..."
+                                                className="bg-transparent text-xs text-white outline-none w-full placeholder-neutral-500"
+                                            />
+                                        </div>
+
+                                        <select
+                                            value={filtroPosicao}
+                                            onChange={e => setFiltroPosicao(e.target.value)}
+                                            className="bg-pitch-card border border-pitch-border rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-pitch-neon transition"
+                                        >
+                                            <option value="TODOS">Todas as posições</option>
+                                            <option value="GOLEIRO">Goleiros</option>
+                                            <option value="ZAGUEIRO">Zagueiros</option>
+                                            <option value="LATERAL">Laterais</option>
+                                            <option value="MEIA">Meias</option>
+                                            <option value="ATACANTE">Atacantes</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {carregando && jogadores.length === 0 ? (
+                                    <div className="text-center py-20 text-pitch-subtext font-medium flex flex-col items-center gap-3">
+                                        <Icons.Ball size={32} className="animate-spin text-pitch-neon" />
+                                        Sincronizando elenco com a API REST...
+                                    </div>
+                                ) : filtrados.length === 0 ? (
+                                    <div className="bg-pitch-card border border-pitch-border rounded-3xl p-12 text-center max-w-lg mx-auto my-6">
+                                        <div className="w-16 h-16 rounded-full bg-pitch-green/10 text-pitch-neon flex items-center justify-center mx-auto mb-4 border border-pitch-green/20">
+                                            <Icons.Ball size={32} />
+                                        </div>
+                                        <h3 className="font-extrabold text-lg">Nenhum jogador encontrado</h3>
+                                        <p className="text-pitch-subtext text-xs mt-2 leading-relaxed">
+                                            Não encontramos atletas correspondentes aos filtros selecionados ou o elenco está vazio.
+                                        </p>
+                                        <button
+                                            onClick={() => { setForm(EMPTY_FORM); setEditando(null); setTela('cadastro'); }}
+                                            className="mt-6 inline-flex items-center gap-2 rounded-full bg-pitch-neon text-black px-6 py-3 font-black text-xs hover:bg-pitch-green transition shadow-lg shadow-pitch-green/20"
+                                        >
+                                            <Icons.Plus size={16} /> Cadastrar Jogador
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                        {filtrados.map((j, idx) => (
+                                            <article
+                                                key={j.id ?? idx}
+                                                className="card-fut border border-pitch-border rounded-2xl p-5 hover:border-pitch-neon/50 transition duration-300 flex flex-col justify-between group"
+                                            >
+                                                <div>
+                                                    <div className="flex justify-between items-start gap-3 mb-4">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-12 h-12 shrink-0 rounded-xl bg-pitch-green/10 text-pitch-neon border border-pitch-green/30 flex items-center justify-center font-black">
+                                                                <Icons.Jersey size={20} />
+                                                            </div>
+
+                                                            <div className="min-w-0">
+                                                                <h3 className="font-black text-base truncate text-white group-hover:text-pitch-neon transition">
+                                                                    {j.nome || 'Jogador Sem Nome'}
+                                                                </h3>
+                                                                <p className="text-pitch-subtext text-xs font-bold mt-0.5 flex items-center gap-1.5">
+                                                                    <span className="text-neutral-300">{j.posicao}</span>
+                                                                    {j.clube && <span>• {j.clube}</span>}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-pitch-black/60 rounded-xl p-2.5 border border-pitch-border/50 text-xs my-3">
+                                                        <span className="text-pitch-subtext block text-[9px] font-black uppercase">Peso</span>
+                                                        <b className="text-neutral-200">{j.peso ? `${j.peso} kg` : 'Não informado'}</b>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-2 pt-3 border-t border-pitch-border/80 mt-2">
+                                                    <button
+                                                        onClick={() => editar(j)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-pitch-border bg-pitch-black/40 py-2 text-xs font-bold hover:bg-pitch-cardHover hover:border-pitch-neon/40 transition"
+                                                    >
+                                                        <Icons.Edit size={14} /> Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletando(j.id)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-900/40 bg-rose-950/20 text-rose-300 py-2 text-xs font-bold hover:bg-rose-900/30 transition"
+                                                    >
+                                                        <Icons.Trash size={14} /> Excluir
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <p className="text-[11px] text-pitch-subtext mt-8 text-center sm:text-left">
+                                    Servidor Backend REST: <code>{apiUrl}</code> · Métodos HTTP suportados: GET, POST, PUT, DELETE
+                                </p>
+                            </>
+                        ) : (
+                            <section className="max-w-3xl mx-auto">
+                                <button
+                                    onClick={() => { setTela('principal'); setEditando(null); setForm(EMPTY_FORM); }}
+                                    className="inline-flex items-center gap-2 text-pitch-subtext hover:text-white text-xs font-bold mb-6 transition"
+                                >
+                                    ← Voltar para o elenco
+                                </button>
+
+                                <div className="bg-pitch-card border border-pitch-border rounded-3xl overflow-hidden shadow-2xl">
+                                    <div className="hero-pitch p-6 md:p-8 border-b border-pitch-border">
+                  <span className="text-pitch-neon text-xs font-black uppercase tracking-widest mb-2 block">
+                    Ficha Técnica do Atleta
+                  </span>
+                                        <h1 className="text-2xl md:text-3xl font-black">
+                                            {editando !== null ? 'Editar Dados do Jogador' : 'Cadastrar Novo Jogador'}
+                                        </h1>
+                                        <p className="text-pitch-subtext text-xs md:text-sm mt-1">
+                                            Preencha as informações exatas para salvar no seu banco de dados Java.
+                                        </p>
+                                    </div>
+
+                                    <form onSubmit={salvar} className="p-6 md:p-8 space-y-5">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelStyle}>Nome Completo do Atleta *</label>
+                                                <input
+                                                    required
+                                                    value={form.nome}
+                                                    onChange={e => setForm({ ...form, nome: e.target.value })}
+                                                    placeholder="Ex.: Gabriel Barbosa"
+                                                    className={fieldStyle}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelStyle}>Clube / Time Atual</label>
+                                                <input
+                                                    value={form.clube}
+                                                    onChange={e => setForm({ ...form, clube: e.target.value })}
+                                                    placeholder="Ex.: Flamengo"
+                                                    className={fieldStyle}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelStyle}>Posição Tática *</label>
+                                                <select
+                                                    required
+                                                    value={form.posicao}
+                                                    onChange={e => setForm({ ...form, posicao: e.target.value })}
+                                                    className={fieldStyle}
+                                                >
+                                                    <option value="GOLEIRO">Goleiro</option>
+                                                    <option value="ZAGUEIRO">Zagueiro</option>
+                                                    <option value="LATERAL">Lateral</option>
+                                                    <option value="MEIA">Meia</option>
+                                                    <option value="ATACANTE">Atacante</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className={labelStyle}>Peso (kg)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={form.peso}
+                                                    onChange={e => setForm({ ...form, peso: e.target.value })}
+                                                    placeholder="Ex.: 78.5"
+                                                    className={fieldStyle}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setTela('principal'); setEditando(null); setForm(EMPTY_FORM); }}
+                                                className="flex-1 py-3.5 rounded-full border border-pitch-border font-bold text-xs hover:bg-pitch-black transition"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="flex-1 py-3.5 rounded-full bg-pitch-neon hover:bg-pitch-green text-black font-black text-xs transition shadow-lg shadow-pitch-green/20"
+                                            >
+                                                {editando !== null ? 'Salvar Alterações (PUT)' : 'Cadastrar Atleta (POST)'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </section>
+                        )}
+                    </div>
+                </main>
+
+                {showConfig && (
+                    <div className="fixed inset-0 z-50 modal-blur flex items-center justify-center p-4">
+                        <div className="bg-pitch-card border border-pitch-border max-w-lg w-full p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-black text-lg flex items-center gap-2">
+                                    <Icons.Settings className="text-pitch-neon" /> Configurar Endpoint da API
+                                </h3>
+                                <button onClick={() => setShowConfig(false)} className="text-pitch-subtext hover:text-white text-xl">×</button>
+                            </div>
+                            <p className="text-pitch-subtext text-xs leading-relaxed">
+                                Informe o endereço base da sua API REST Java no Spring Boot.
+                            </p>
+                            <div>
+                                <label className={labelStyle}>URL Base (/api/jogadores)</label>
+                                <input
+                                    value={urlEdit}
+                                    onChange={e => setUrlEdit(e.target.value)}
+                                    placeholder="http://localhost:8080/api/jogadores"
+                                    className={fieldStyle}
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowConfig(false)}
+                                    className="flex-1 py-3 rounded-full border border-pitch-border font-bold text-xs hover:bg-pitch-black transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (urlEdit.trim()) {
+                                            setApiUrl(urlEdit.trim().replace(/\/$/, ''));
+                                            setUseDemoMode(false);
+                                            setShowConfig(false);
+                                        }
+                                    }}
+                                    className="flex-1 py-3 rounded-full bg-pitch-neon text-black font-black text-xs hover:bg-pitch-green transition"
+                                >
+                                    Testar & Conectar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {deletando !== null && (
+                    <div className="fixed inset-0 z-50 modal-blur flex items-center justify-center p-4">
+                        <div className="bg-pitch-card border border-pitch-border max-w-sm w-full p-6 rounded-3xl text-center space-y-5 shadow-2xl">
+                            <div className="mx-auto w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+                                <Icons.Trash size={22} />
+                            </div>
+                            <div>
+                                <h3 className="font-extrabold text-lg">Remover Jogador?</h3>
+                                <p className="text-pitch-subtext text-xs mt-1">
+                                    Será enviada a requisição <code className="text-rose-300">DELETE {apiUrl}/{deletando}</code> para o Spring Boot.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeletando(null)}
+                                    className="flex-1 py-3 rounded-full bg-pitch-black border border-pitch-border font-bold text-xs hover:bg-pitch-cardHover transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => excluir(deletando)}
+                                    className="flex-1 py-3 rounded-full bg-rose-600 font-black text-xs hover:bg-rose-500 text-white transition"
+                                >
+                                    Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
